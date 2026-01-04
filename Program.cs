@@ -1,4 +1,5 @@
 using com.sun.tools.javac.util;
+using com.sun.xml.@internal.xsom.impl.parser;
 using edu.stanford.nlp.ie.crf;
 using edu.stanford.nlp.ling;
 using edu.stanford.nlp.parser.lexparser;
@@ -10,6 +11,8 @@ using edu.stanford.nlp.trees;
 using edu.stanford.nlp.util;
 using java.util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.JsonPatch.Adapters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -298,6 +301,19 @@ app.Map("/api/exposed", () =>
 })
 .Produces<bool>(StatusCodes.Status200OK)
 .WithTags("Exposed");
+
+app.MapPatch("/api/Patch", ([FromBody] JsonPatchDocument patchDoc) =>
+{
+    //patchDoc.ApplyTo(new object(), adapter);
+    // Handle the patch document
+    patchDoc.Operations.ForEach(op =>
+    {
+        Console.WriteLine($"Operation: {op.op}, Path: {op.path}, Value: {op.value}");
+    });
+    return Results.Accepted();
+})
+.Produces(StatusCodes.Status202Accepted)
+.WithTags("JsonPatch");
 
 app.MapControllers().RequireCors("MyPolicy");
 
