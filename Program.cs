@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.OpenApi.Models;
+using OneOf;
 using RandomAPIApp.DTOs;
 using RandomAPIApp.Options;
 using System.IdentityModel.Tokens.Jwt;
@@ -36,8 +37,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 ValidIssuer = builder.Configuration.GetSection($"{nameof(JWTOptions)}:{nameof(JWTOptions.Issuer)}").Value,
                 ValidAudience = builder.Configuration.GetSection($"{nameof(JWTOptions)}:{nameof(JWTOptions.Audience)}").Value,
                 IssuerSigningKeys = new[]{
-                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection($"{nameof(JWTOptions)}:{nameof(JWTOptions.Secret)}").Value ??
-                        throw new InvalidOperationException("JWT secret is not set")))
+                    CreateSymmetricKey(builder.Configuration.GetSection($"{nameof(JWTOptions)}:{nameof(JWTOptions.Secret)}").Value ??
+                        throw new InvalidOperationException("JWT secret is not set"))
                 },
                 ValidateLifetime = true,
                 ValidateIssuer = true,
@@ -134,15 +135,14 @@ app.MapGet("/jwt", (IOptions<JWTOptions> options) =>
     string secretKey = options.Value.Secret;
 
     // Create a symmetric security key using the secret key
-    SymmetricSecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-
+    SymmetricSecurityKey securityKey = CreateSymmetricKey(secretKey);
     // Create the JWT security token
     JwtSecurityToken token = new JwtSecurityToken(
         issuer: options.Value.Issuer,
         audience: options.Value.Audience,
         claims: claims,
         expires: DateTime.UtcNow.AddMinutes(30),
-        signingCredentials: new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256)
+        signingCredentials: new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature)
     );
     JwtSecurityTokenHandler jwtHandler = new JwtSecurityTokenHandler();
     string jwtToken = jwtHandler.WriteToken(token);
@@ -261,9 +261,41 @@ app.MapPost("/api/sutime", (string input) =>
 .Produces(StatusCodes.Status401Unauthorized)
 .WithTags("Stanford University Time").RequireAuthorization(Policy.USER_NAME);
 
+app.MapGet("/api/oneOf", () => {
+
+    if (DateTime.Now.Second % 2 == 0)
+    {
+        return Results.Ok("This is a string result.");
+    }
+    else
+    {
+        return Results.Ok(DateTime.Now.Second);
+    }
+
+})
+.Produces<OneOf<string, int>>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status401Unauthorized)
+.RequireAuthorization(Policy.USER_NAME)
+.WithDescription("oneOf<string>")
+.WithTags("OneOf");
+
+app.Map("/api/exposed", () =>
+{
+    return "Hola! This is an exposed endpoint.";
+
+})
+.Produces<bool>(StatusCodes.Status200OK)
+.WithTags("Exposed");
+
 app.MapControllers().RequireCors("MyPolicy");
 
 app.Run();
+
+SymmetricSecurityKey CreateSymmetricKey(string base64SecretKey)
+{
+    byte[] keyBytes = System.Convert.FromBase64String(base64SecretKey);
+    return new SymmetricSecurityKey(keyBytes);
+}
 
 
 public class StanfordNLPModelPath

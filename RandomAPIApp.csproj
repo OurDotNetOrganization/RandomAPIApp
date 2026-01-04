@@ -51,6 +51,7 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="6.34.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
+    <PackageReference Include="OneOf" Version="3.0.271" />
     <PackageReference Include="Stanford.NLP.CoreNLP" Version="4.5.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
